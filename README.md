@@ -27,3 +27,8 @@ Sure you are, because it's easy:
 ## Progress
  - Verified good: CView (/verifications/compositor) and tcellblit (its example)
  - In Progress: A working "final" layout, minus a usable new-window API
+
+## Blog
+ - Had to fork tcellterm b/c it was incompatible with cview
+ - Had to fork cview because it was impossible to make the window decorations as I wanted. 
+     Plan: make these decorations in the regular window draw code. 

@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"runtime/debug"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/snadrus/cview"
@@ -23,6 +24,11 @@ type model struct {
 
 // Update is the main event handler. It should only be called by the main thread
 func (m *model) Update(ev tcell.Event) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Fatal(r, string(debug.Stack()))
+		}
+	}()
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		switch ev.Key() {
@@ -34,20 +40,21 @@ func (m *model) Update(ev tcell.Event) {
 		if m.term != nil {
 			m.term.HandleEvent(ev)
 		}
-		m.term.Draw()
+		m.term.Draw(m.s, [4]int{2, 0, 0, 0})
 		m.s.Show()
 	case *tcell.EventResize:
 		if m.term != nil {
-			m.termView.SetRect(0, 2, -1, -1)
-			m.term.SetRect(m.termView.GetRect())
+			//m.termView.SetRect(0, 2, -1, -1)
+			w, h := ev.Size()
+			m.term.Resize(w, h-2)
 		}
 		m.title.SetRect(0, 0, -1, 2)
 		m.title.Draw(m.s)
-		m.term.Draw()
+		m.term.Draw(m.s, [4]int{2, 0, 0, 0})
 		m.s.Sync()
 		return
 	case *tcellterm.EventRedraw:
-		m.term.Draw()
+		m.term.Draw(m.s, [4]int{2, 0, 0, 0})
 		m.title.Draw(m.s)
 
 		row, col, style, vis := m.term.Cursor()
@@ -120,7 +127,6 @@ func main() {
 	// m.term = tcellterm.New(tcellterm.WithWriter(recorder))
 	// m.term.Watch(m)
 	m.term = tcellterm.New()
-	m.term.SetSurface(m.termView)
 	m.term.Attach(m.HandleEvent)
 	m.term.Logger = log.New(f, "", log.Flags())
 	m.s.EnableMouse()
@@ -137,4 +143,5 @@ func main() {
 		}
 		m.Update(ev)
 	}
+	m.s.Fini()
 }

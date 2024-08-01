@@ -54,10 +54,10 @@ type VT struct {
 	eventHandler func(tcell.Event)
 	parser       *Parser
 	pty          *os.File
-	surface      Surface
 	events       chan tcell.Event
 
 	mouseBtn tcell.ButtonMask
+	started  bool
 }
 
 type cursorState struct {
@@ -128,19 +128,19 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 		return fmt.Errorf("no command to run")
 	}
 	vt.cmd = cmd
-	vt.mu.Lock()
-	w, h := vt.surface.Size()
-	vt.mu.Unlock()
+	return nil
+}
+func (vt *VT) start(w, h int) error {
 
 	if vt.TERM == "" {
 		vt.TERM = "xterm-256color"
 	}
 
 	env := os.Environ()
-	if cmd.Env != nil {
-		env = cmd.Env
+	if vt.cmd.Env != nil {
+		env = vt.cmd.Env
 	}
-	cmd.Env = append(env, "TERM="+vt.TERM)
+	vt.cmd.Env = append(env, "TERM="+vt.TERM)
 
 	// Start the command with a pty.
 	var err error
@@ -149,7 +149,7 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 		Rows: uint16(h),
 	}
 	vt.pty, err = pty.StartWithAttrs(
-		cmd,
+		vt.cmd,
 		&winsize,
 		&syscall.SysProcAttr{
 			Setsid:  true,
@@ -448,24 +448,22 @@ func (vt *VT) postEvent(ev tcell.Event) {
 	vt.events <- ev
 }
 
-func (vt *VT) SetSurface(srf Surface) {
+func (vt *VT) Draw(srf Surface, padtblr [4]int) {
 	vt.mu.Lock()
 	defer vt.mu.Unlock()
-	vt.surface = srf
-}
-
-func (vt *VT) Draw() {
-	vt.mu.Lock()
-	defer vt.mu.Unlock()
-	vt.dirty = false
-	if vt.surface == nil {
-		return
+	if !vt.started {
+		vt.started = true
+		w, h := srf.Size()
+		h -= padtblr[0]
+		vt.start(w, h)
 	}
+	vt.dirty = false
+
 	for row := 0; row < vt.height(); row += 1 {
 		for col := 0; col < vt.width(); {
 			cell := vt.activeScreen[row][col]
 			w := cell.width
-			vt.surface.SetContent(col, row, cell.content, cell.combining, cell.attrs)
+			srf.SetContent(col, row+padtblr[0], cell.content, cell.combining, cell.attrs)
 			if w == 0 {
 				w = 1
 			}
