@@ -10,15 +10,16 @@ import (
 	"os/exec"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/snadrus/cview"
+	"github.com/gdamore/tcell/v2/views"
 	"github.com/snadrus/tuitop/tcellterm"
 )
 
 type model struct {
-	term     *tcellterm.VT
-	s        tcell.Screen
-	termView *cview.Box
-	title    *cview.TextView
+	term      *tcellterm.VT
+	s         tcell.Screen
+	termView  views.View
+	title     *views.TextBar
+	titleView views.View
 }
 
 // Update is the main event handler. It should only be called by the main thread
@@ -38,17 +39,18 @@ func (m *model) Update(ev tcell.Event) {
 		m.s.Show()
 	case *tcell.EventResize:
 		if m.term != nil {
-			m.termView.SetRect(0, 2, -1, -1)
-			m.term.SetRect(m.termView.GetRect())
+			m.termView.Resize(0, 2, -1, -1)
+			m.term.Resize(m.termView.Size())
 		}
-		m.title.SetRect(0, 0, -1, 2)
-		m.title.Draw(m.s)
+		m.titleView.Resize(0, 0, -1, 2)
+		m.title.Resize()
+		m.title.Draw()
 		m.term.Draw()
 		m.s.Sync()
 		return
 	case *tcellterm.EventRedraw:
 		m.term.Draw()
-		m.title.Draw(m.s)
+		m.title.Draw()
 
 		row, col, style, vis := m.term.Cursor()
 		if vis {
@@ -110,13 +112,18 @@ func main() {
 	}
 	m.s.EnablePaste()
 
-	m.title = cview.NewTextView()
-	m.title.SetTextAlign(cview.AlignCenter)
-	m.title.SetTextColor(tcell.ColorBlue)
-	m.title.SetBackgroundColor(tcell.ColorWhite)
-	m.title.SetText("Welcome to tcell-term")
+	m.title = views.NewTextBar()
+	m.title.SetCenter(
+		"Welcome to tcell-term",
+		tcell.StyleDefault.Foreground(tcell.ColorBlue).
+			Bold(true).
+			Underline(true),
+	)
 
-	m.title.SetRect(0, 2, -1, -1)
+	m.titleView = views.NewViewPort(m.s, 0, 0, -1, 2)
+	m.title.SetView(m.titleView)
+
+	m.termView = views.NewViewPort(m.s, 0, 2, -1, -1)
 	// m.term = tcellterm.New(tcellterm.WithWriter(recorder))
 	// m.term.Watch(m)
 	m.term = tcellterm.New()
