@@ -6,9 +6,11 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"os/exec"
 
-	"code.rocketnine.space/tslocum/cview"
 	"github.com/gdamore/tcell/v2"
+	"github.com/snadrus/cview"
+	"github.com/snadrus/tuitop/verifications/6-cterm/cterm"
 )
 
 const loremIpsumText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
@@ -48,8 +50,9 @@ func Window() cview.Primitive {
 		return 0, nil
 	})
 
-	w4 :=
-		wm.Add(w1, w2, w3)
+	w4 := cview.NewWindow(cterm.NewTerminal(exec.Command("bash")))
+	w4.SetRect(4, 3, 54, 12)
+	wm.Add(w1, w2, w3, w4)
 
 	return wm
 }
