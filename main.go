@@ -77,8 +77,8 @@ func Btm(wm *cview.WindowManager) cview.Primitive {
 	drawer.SetBackgroundColor(ColorWindowsBlue) //#3177d9
 	btm.AddItem(drawer, 0, 100, false)
 	tray := cview.NewTextView()
-	tray.SetBackgroundColor(tcell.NewRGBColor(256-((256-49)/3), 256-((256-119)/3), 256-((256-217)/3))) //#3177d9
-	tray.SetTextColor(tcell.ColorWhite)
+	tray.SetBackgroundColor(tcell.NewRGBColor(256-((256-49)/4), 256-((256-119)/4), 256-((256-217)/4))) //#3177d9
+	tray.SetTextColor(tcell.ColorBlack)
 	tray.SetText(getTime())
 
 	go func() {
