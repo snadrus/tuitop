@@ -3,7 +3,7 @@
 The Luxury Console
 (construction in progress)
 
-![Luxury Console](path/to/first.gif)
+![Luxury Console](/first.gif)
 
 ## Using a graphical desktop?
 
