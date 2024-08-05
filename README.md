@@ -33,15 +33,16 @@ Sure you are, because it's easy:
 
 ## Progress
 
-- Verified good: CView (/verifications/compositor) and tcellblit (its example)
 - In Progress: A working "final" layout, minus a usable new-window API
 
 Next up:
 
+- $SHELL | find BASH
 - resize
 - window close (on exit & on X)
 - Re-imagine ctrl+c:
 -- TuiTop menu should have at-least: exit, settings
+- 
 
 Later:
 
