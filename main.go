@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -22,8 +23,16 @@ func main() {
 	flag.Parse()
 
 	if debugPort > 0 {
+		logBuf := bytes.NewBuffer(nil)
+		log.SetOutput(logBuf)
+		log.Println("Starting debug server on port", debugPort)
 		go func() {
-			log.Fatal(http.ListenAndServe(fmt.Sprintf("localhost:%d", debugPort), nil))
+			log.Fatal(http.ListenAndServe(fmt.Sprintf("localhost:%d", debugPort), http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "text/plain")
+					w.WriteHeader(200)
+					w.Write(logBuf.Bytes())
+				})))
 		}()
 	}
 

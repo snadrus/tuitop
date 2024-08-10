@@ -1,6 +1,7 @@
 package cterm
 
 import (
+	"log"
 	"os/exec"
 	"sync"
 
@@ -30,15 +31,25 @@ func NewTerminal(cmd *exec.Cmd) *Terminal {
 		term: n,
 		cmd:  cmd,
 	}
-	t.term.Attach(t.eventHandler)
 	return t
 }
 
-func (t *Terminal) eventHandler(ev tcell.Event) {
-	switch ev.(type) {
-	case tcellterm.EventClosed:
+/*
+func (t *Terminal) Focus(delegate func(p cview.Primitive)) {
+	t.term.ShowCursor()
+	t.Box.Focus(delegate)
+}
+func (t *Terminal) Blur() {
+	t.term.HideCursor()
+	t.Box.Blur()
+}
+*/
 
-	}
+// TODO if X is clicked, call t.term.Close()
+
+func (t *Terminal) Attach(eventHandler func(ev tcell.Event)) {
+	log.Printf("Attach", eventHandler)
+	t.term.Attach(eventHandler)
 }
 func (t *Terminal) Draw(s tcell.Screen) {
 	if !t.GetVisible() {

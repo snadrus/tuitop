@@ -1,12 +1,15 @@
 package tuiwindow
 
 import (
+	"log"
 	"os/exec"
 	"path"
 	"sync/atomic"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/snadrus/tuitop/deps/cterm"
 	"github.com/snadrus/tuitop/deps/cview"
+	"github.com/snadrus/tuitop/deps/tcellterm"
 )
 
 type TuiWindowCfg struct {
@@ -27,7 +30,10 @@ func MkCreateWindow(wm *cview.WindowManager) CreateWindow {
 		for _, opt := range opts {
 			opt(cfg)
 		}
-		w := cview.NewWindow(cterm.NewTerminal(exec.Command(cmd)))
+		cmdExec := exec.Command(cmd)
+		t := cterm.NewTerminal(cmdExec)
+
+		w := cview.NewWindow(t)
 		_, file := path.Split(cmd)
 		w.SetTitle(file)
 
@@ -35,6 +41,16 @@ func MkCreateWindow(wm *cview.WindowManager) CreateWindow {
 		bestX, bestY := bestXY(wm, windowWidth, windowHt)
 		w.SetRect(bestX, bestY, windowWidth, windowHt)
 		wm.Add(w)
+		t.Attach(func(ev tcell.Event) {
+			switch ev.(type) {
+			case *tcellterm.EventClosed:
+				log.Printf("closed")
+				if cfg.closeHandler != nil {
+					cfg.closeHandler(cmdExec.ProcessState.ExitCode())
+				}
+				wm.Remove(w)
+			}
+		})
 	}
 }
 

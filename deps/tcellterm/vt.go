@@ -172,6 +172,7 @@ func (vt *VT) Start(cmd *exec.Cmd) error {
 				seq := vt.parser.Next()
 				switch seq := seq.(type) {
 				case EOF:
+					log.Print("EOF, eventhandler=", vt.eventHandler)
 					vt.eventHandler(&EventClosed{
 						EventTerminal: newEventTerminal(vt),
 					})
@@ -257,6 +258,20 @@ func (vt *VT) Cursor() (int, int, tcell.CursorStyle, bool) {
 	vis := vt.mode&dectcem > 0
 	return int(vt.cursor.row), int(vt.cursor.col), vt.cursor.style, vis
 }
+
+/*
+func (vt *VT) ShowCursor() {
+	vt.mu.Lock()
+	vt.cursor.style = tcell.CursorStyleSteadyBlock
+	vt.mu.Unlock()
+	vt.Draw()
+}
+func (vt *VT) HideCursor() {
+	vt.mu.Lock()
+	vt.cursor.style = tcell.CursorStyleSteadyUnderline
+	vt.mu.Unlock()
+	vt.Draw()
+}*/
 
 func (vt *VT) Resize(w int, h int) {
 	primary := vt.primaryScreen

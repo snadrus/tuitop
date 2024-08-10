@@ -7,6 +7,7 @@ require (
 	code.rocketnine.space/tslocum/cview v1.5.9
 	github.com/creack/pty v1.1.17
 	github.com/gdamore/tcell/v2 v2.7.4
+	github.com/kr/pretty v0.2.1
 	github.com/lucasb-eyer/go-colorful v1.2.0
 	github.com/mattn/go-runewidth v0.0.15
 	github.com/rivo/uniseg v0.4.6
@@ -18,6 +19,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
+	github.com/kr/text v0.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/term v0.17.0 // indirect
