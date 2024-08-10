@@ -3,8 +3,7 @@ package tuiwindow
 import (
 	"os/exec"
 	"path"
-
-	"golang.org/x/exp/rand"
+	"sync/atomic"
 
 	"github.com/snadrus/cview"
 	"github.com/snadrus/tuitop/tui/cterm"
@@ -28,13 +27,32 @@ func MkCreateWindow(wm *cview.WindowManager) CreateWindow {
 		for _, opt := range opts {
 			opt(cfg)
 		}
-		_, _, screenW, screenH := wm.GetRect()
 		w := cview.NewWindow(cterm.NewTerminal(exec.Command(cmd)))
 		_, file := path.Split(cmd)
 		w.SetTitle(file)
 
 		windowWidth, windowHt := 54, 12
-		w.SetRect(rand.Int()%(screenW-windowWidth), rand.Int()%(screenH-windowHt), windowWidth, windowHt)
+		bestX, bestY := bestXY(wm, windowWidth, windowHt)
+		w.SetRect(bestX, bestY, windowWidth, windowHt)
 		wm.Add(w)
 	}
+}
+
+var location int64 = 0
+
+func bestXY(wm *cview.WindowManager, windowWidth, windowHt int) (x, y int) {
+	// TODO fix me: GetRect() only usable after app starts. Need to know screen size.
+	//_, _, screenW, screenH := wm.GetRect()
+	loc := atomic.AddInt64(&location, 1)
+	if loc > 5 {
+		atomic.StoreInt64(&location, 0)
+	}
+	x = 1 + int(loc)*4
+	y = int(loc) * 3
+	/*if cannot do this, not ready: x+windowWidth > screenW || y+windowHt > screenH {
+		atomic.StoreInt64(&location, 0)
+		x = 1
+		y = 1
+	}*/
+	return x, y // TODO do better than random: avoid overlap.
 }

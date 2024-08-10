@@ -25,9 +25,12 @@ func CreateWindowManager() *cview.WindowManager {
 		return 0, nil
 	})
 
+	wm.Add(w3)
 	createWindow := tuiwindow.MkCreateWindow(wm)
 	AddShell(createWindow)
 	AddShell(createWindow)
+
+	// TODO replace wm to have Remove() and GetWindows() methods
 	return wm
 }
 
