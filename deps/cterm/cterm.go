@@ -6,8 +6,8 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
-	"github.com/snadrus/cview"
-	"github.com/snadrus/tuitop/tcellterm"
+	"github.com/snadrus/tuitop/deps/cview"
+	"github.com/snadrus/tuitop/deps/tcellterm"
 )
 
 type Terminal struct {

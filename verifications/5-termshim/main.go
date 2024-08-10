@@ -20,7 +20,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/snadrus/cview"
+	"github.com/snadrus/tuitop/deps/cview"
 	"github.com/snadrus/tuitop/verifications/5-termshim/termshim"
 )
 

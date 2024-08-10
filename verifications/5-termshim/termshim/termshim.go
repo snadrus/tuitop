@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/snadrus/cview"
-	"github.com/snadrus/tuitop/tcellterm"
+	"github.com/snadrus/tuitop/deps/cview"
+	"github.com/snadrus/tuitop/deps/tcellterm"
 )
 
 var log = logToFile //func(s string) {}

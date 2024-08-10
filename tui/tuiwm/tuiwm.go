@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/snadrus/cview"
+	"github.com/snadrus/tuitop/deps/cview"
 	"github.com/snadrus/tuitop/tui/installer"
 	"github.com/snadrus/tuitop/tui/tuiwindow"
 )

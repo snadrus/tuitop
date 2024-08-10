@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/snadrus/cview"
+	"github.com/snadrus/tuitop/deps/cview"
 	"github.com/snadrus/tuitop/tui/tuiwm"
 )
 

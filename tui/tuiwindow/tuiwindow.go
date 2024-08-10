@@ -5,8 +5,8 @@ import (
 	"path"
 	"sync/atomic"
 
-	"github.com/snadrus/cview"
-	"github.com/snadrus/tuitop/tui/cterm"
+	"github.com/snadrus/tuitop/deps/cterm"
+	"github.com/snadrus/tuitop/deps/cview"
 )
 
 type TuiWindowCfg struct {
