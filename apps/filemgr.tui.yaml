@@ -1,0 +1,6 @@
+name: 📁 Files
+category: Basic
+cli: yazi
+get: 
+  pkg: yazi
+

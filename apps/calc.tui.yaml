@@ -1,0 +1,7 @@
+name: 🔢 Calc
+category: Basic
+cli: bc
+alt:
+    get: 
+        pkg: python
+    run: python

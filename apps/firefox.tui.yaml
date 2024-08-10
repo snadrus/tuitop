@@ -1,0 +1,8 @@
+name: 🌍 Firefox
+category: Network
+cli: browsh --url 
+get:
+  either:
+    - pkg: browsh-bin
+    - pkg: browsh
+    - cmd: brew tap browsh-org/homebrew-browsh && brew install browsh-org/browsh/browsh

@@ -1,0 +1,5 @@
+name: 🐍 Python REPL
+category: Dev\Lang
+cli: python
+get: 
+  pkg: python

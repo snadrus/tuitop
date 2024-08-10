@@ -20,6 +20,7 @@ type Terminal struct {
 
 	sync.Once
 	sync.RWMutex
+	oldW, oldH int
 }
 
 func NewTerminal(cmd *exec.Cmd) *Terminal {
@@ -29,9 +30,16 @@ func NewTerminal(cmd *exec.Cmd) *Terminal {
 		term: n,
 		cmd:  cmd,
 	}
+	t.term.Attach(t.eventHandler)
 	return t
 }
 
+func (t *Terminal) eventHandler(ev tcell.Event) {
+	switch ev.(type) {
+	case tcellterm.EventClosed:
+
+	}
+}
 func (t *Terminal) Draw(s tcell.Screen) {
 	if !t.GetVisible() {
 		return
@@ -53,10 +61,19 @@ func (t *Terminal) Draw(s tcell.Screen) {
 			if err != nil {
 				panic(err)
 			}
-			t.running = false
+			t.running = true
 		}()
 	})
 	t.term.Draw()
+}
+
+func (t *Terminal) SetRect(x, y, w, h int) {
+	t.Box.SetRect(x, y, w, h)
+	if t.running && (w != t.oldW || h != t.oldH) {
+		_, _, w, h := t.Box.GetInnerRect()
+		t.term.Resize(w, h)
+	}
+	t.oldW, t.oldH = w, h
 }
 
 func (t *Terminal) HandleEvent(ev tcell.Event) bool {
@@ -76,6 +93,10 @@ func (t *Terminal) HandleEvent(ev tcell.Event) bool {
 		}
 		t.screen.Show()
 		return true
+	case *views.EventWidgetResize:
+		_, _, w, h := t.GetInnerRect()
+		t.term.Resize(w, h)
+		t.Draw(t.screen)
 	}
 	return false
 }

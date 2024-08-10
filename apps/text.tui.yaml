@@ -1,0 +1,5 @@
+name: 🖍️ Text Editor
+category: Basic
+cli: kakoune
+get:
+  pkg: kakoune

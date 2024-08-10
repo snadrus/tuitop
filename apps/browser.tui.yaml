@@ -1,0 +1,7 @@
+name: 🌐 Elinks2 Web
+category: Network
+cli: elinks
+get:
+  either:
+    - pkg: felinks
+    - pkg: elinks

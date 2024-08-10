@@ -37,21 +37,31 @@ Sure you are, because it's easy:
 
 Next up:
 
-- $SHELL | find BASH
-- resize
 - window close (on exit & on X)
-- Re-imagine ctrl+c:
--- TuiTop menu should have at-least: exit, settings
-- 
+-- LOL! there is NO CLOSE for windows!
+- Menu: exit (rm ctrl-C), settings, apps
+- Add env TUITOP=/tmp/foo1234 (symlink to binary, allow ran like this to add window)
+- Selection + Copy/Paste
 
 Later:
 
 - window auto-renaming
+  github.com/shirou/gopsutil/v3 process.NewProcess(pid) [ .Children() .Name() ]
 - in-house cview for box
+- persist thru SIGHUP
 
-Menu Items:
+Easy Starter Tasks:
 
-- Exit
-- Settings?
-- Calculator
-- Selected Apps that have Brew+APT+WindowsCliThing install plans.
+- Show/Hide cursor
+- Scrollback
+- text selection within a window
+
+Config folder: ~/.config/tuitop/
+
+- bin/upt   (TRUE TODAY)
+- bin/ (src-build-binaries-linked-here)
+- src/ git'd sources (FUTURE)
+- menu/ items mods (FUTURE)
+- config/ config files (FUTURE)
+- logs/ logs (FUTURE)
+- cache/ cache for which menu items have been installed and which cannot be (FUTURE)

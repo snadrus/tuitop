@@ -1,0 +1,7 @@
+name: 📯 Posting
+category: Network\HTTP
+cli: posting
+get:
+  pre:
+    pkg: pipx
+  cmd: pipx install posting
