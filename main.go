@@ -202,6 +202,8 @@ func main() {
 	config := tuios.Config.DefaultConfig()
 	config.Appearance.BorderStyle = "hidden"
 	config.Appearance.WindowTitlePosition = "top"
+	config.Appearance.WindowTitleFgFocused = "#ffffff"    // active window title and controls
+	config.Appearance.WindowTitleFgUnfocused = "#000000"  // inactive windows
 	config.Appearance.HideClock = true
 	snapOnDragToEdge := false
 	config.Appearance.SnapOnDragToEdge = &snapOnDragToEdge

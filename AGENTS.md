@@ -1,0 +1,1 @@
+**Fork modifications:** When this repo is used as a fork, follow [DESIGN_PHILOSOPHY.md](DESIGN_PHILOSOPHY.md) — minimal changes, no constants, all values passed in from the host.
