@@ -11,6 +11,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/Gaurav-Gosain/tuios/pkg/tuios"
 	tint "github.com/lrstanley/bubbletint/v2"
+	"github.com/snadrus/tuitop/internal/startmenu"
 )
 
 const unsnapQuarter = 8
@@ -50,6 +51,11 @@ type appModel struct {
 	prevWinCount int
 	// lastTermBtnBounds: [xStart, xEnd) of terminal button on status bar, from last render
 	lastTermBtnBounds [2]int
+	// lastStartBtnBounds: [xStart, xEnd) of Start button + divider (combined click target), from last render
+	lastStartBtnBounds [2]int
+	// lastMenuBounds: [xStart, yStart, xEnd, yEnd) of start menu overlay when open; used for click-outside-to-close
+	lastMenuBounds [4]int
+	startMenuOpen  bool
 }
 
 func (m *appModel) Init() tea.Cmd {
@@ -64,6 +70,9 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if click, ok := msg.(tea.MouseClickMsg); ok {
+		if m.handleStartMenuClick(click) {
+			return m, nil
+		}
 		if m.handleStatusBarClick(click) {
 			return m, nil
 		}
@@ -99,14 +108,56 @@ func (m *appModel) View() tea.View {
 	canvas := m.inner.GetCanvas(true)
 
 	// Add our status bar as a canvas layer (same pipeline as tuios overlays) so it renders with correct colors
-	bar, termBtnStart, termBtnEnd := renderStatusBarWithBounds(m.inner.GetRenderWidth())
+	bar, termBtnStart, termBtnEnd, startBtnStart, startBtnEnd := renderStatusBarWithBounds(m.inner.GetRenderWidth(), m.startMenuOpen)
 	m.lastTermBtnBounds = [2]int{termBtnStart, termBtnEnd}
+	m.lastStartBtnBounds = [2]int{startBtnStart, startBtnEnd}
 	barLayer := lipgloss.NewLayer(bar).
 		X(0).
 		Y(m.inner.GetRenderHeight() - statusBarHeight).
 		Z(99999).
 		ID("tuitop-bar")
 	canvas.AddLayers(barLayer)
+
+	if m.startMenuOpen {
+		menuContent, menuW, menuH := startmenu.Render(startmenu.StyleConfig{
+			MenuBg:           winXPTaskbarBlue,
+			MenuFg:           "#ffffff",
+			UserFg:           "#ffffff",
+			HighlightBg:      winXPNotificationBlue,
+			HighlightFg:      "#ffffff",
+			AllProgramsFg:    "#ffffff",
+			MenuWidth:        28,
+			LeftColumnWidth:  14,
+			RightColumnWidth: 14,
+		})
+		if use256 := os.Getenv("TUITOP_USE_256_COLORS") == "1" || strings.EqualFold(os.Getenv("TUITOP_USE_256_COLORS"), "true"); use256 {
+			// 256-color mode: use same taskbar blue
+			menuContent, menuW, menuH = startmenu.Render(startmenu.StyleConfig{
+				MenuBg:           color256TaskbarBlue,
+				MenuFg:           "7",
+				UserFg:           "7",
+				HighlightBg:      color256Notification,
+				HighlightFg:      "7",
+				AllProgramsFg:    "7",
+				MenuWidth:        28,
+				LeftColumnWidth:  14,
+				RightColumnWidth: 14,
+			})
+		}
+		menuY := m.inner.GetRenderHeight() - statusBarHeight - menuH
+		if menuY < 0 {
+			menuY = 0
+		}
+		m.lastMenuBounds = [4]int{0, menuY, menuW, menuY + menuH}
+		menuLayer := lipgloss.NewLayer(menuContent).
+			X(0).
+			Y(menuY).
+			Z(100000).
+			ID("tuitop-startmenu")
+		canvas.AddLayers(menuLayer)
+	} else {
+		m.lastMenuBounds = [4]int{0, 0, 0, 0}
+	}
 
 	innerContent := lipgloss.Sprint(canvas.Render())
 
@@ -130,8 +181,8 @@ func (m *appModel) View() tea.View {
 	return view
 }
 
-// renderStatusBarWithBounds returns the status bar string and terminal button X bounds [start, end).
-func renderStatusBarWithBounds(width int) (bar string, termBtnXStart, termBtnXEnd int) {
+// renderStatusBarWithBounds returns the status bar string, terminal button X bounds [start, end), and start button X bounds [start, end).
+func renderStatusBarWithBounds(width int, startMenuOpen bool) (bar string, termBtnXStart, termBtnXEnd, startBtnXStart, startBtnXEnd int) {
 	currentTime := time.Now().Format("15:04:05")
 	use256 := os.Getenv("TUITOP_USE_256_COLORS") == "1" || strings.EqualFold(os.Getenv("TUITOP_USE_256_COLORS"), "true")
 
@@ -144,11 +195,15 @@ func renderStatusBarWithBounds(width int) (bar string, termBtnXStart, termBtnXEn
 		dividerFg = "#000000"
 	}
 
+	// When menu is open, show Start button as "pressed" (darker)
 	startBtnStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("7")).
 		Background(lipgloss.Color(startBg)).
 		Padding(0, 1)
-	startBtn := startBtnStyle.Render(" 🐧 Start ")
+	if startMenuOpen {
+		startBtnStyle = startBtnStyle.Background(lipgloss.Color(taskbarBg)).Foreground(lipgloss.Color(startBg))
+	}
+	startBtn := startBtnStyle.Render(" ❄️  Start ")
 
 	divStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(startBg)).
@@ -203,7 +258,25 @@ func renderStatusBarWithBounds(width int) (bar string, termBtnXStart, termBtnXEn
 		Width(middleWidth).
 		Render(" ")
 	bar = lipgloss.JoinHorizontal(lipgloss.Top, leftWithTermBtn, middle, separator, clockText)
-	return bar, termBtnXStart, termBtnXEnd
+	startBtnXStart = 0
+	startBtnXEnd = lipgloss.Width(startBtn) + lipgloss.Width(divider)
+	return bar, termBtnXStart, termBtnXEnd, startBtnXStart, startBtnXEnd
+}
+
+// handleStartMenuClick handles click-outside-to-close when the start menu is open. Must run before handleStatusBarClick.
+func (m *appModel) handleStartMenuClick(click tea.MouseClickMsg) bool {
+	if !m.startMenuOpen || m.inner == nil || click.Button != tea.MouseLeft {
+		return false
+	}
+	mb := m.lastMenuBounds
+	// Click inside menu? Consume (don't forward to windows underneath); item handlers come later.
+	if click.X >= mb[0] && click.X < mb[2] && click.Y >= mb[1] && click.Y < mb[3] {
+		return true
+	}
+	// Click outside menu -> close
+	m.startMenuOpen = false
+	m.inner.MarkAllDirty()
+	return true
 }
 
 func (m *appModel) handleStatusBarClick(click tea.MouseClickMsg) bool {
@@ -215,13 +288,31 @@ func (m *appModel) handleStatusBarClick(click tea.MouseClickMsg) bool {
 	if click.Y != statusBarY {
 		return false
 	}
+	startStart, startEnd := m.lastStartBtnBounds[0], m.lastStartBtnBounds[1]
 	termStart, termEnd := m.lastTermBtnBounds[0], m.lastTermBtnBounds[1]
-	if click.X < termStart || click.X >= termEnd {
-		return false
+
+	// Start button + divider click -> toggle menu
+	if click.X >= startStart && click.X < startEnd {
+		m.startMenuOpen = !m.startMenuOpen
+		m.inner.MarkAllDirty()
+		return true
 	}
-	m.inner.AddWindow("")
-	m.inner.MarkAllDirty()
-	return true
+	// Terminal button click -> new terminal
+	if click.X >= termStart && click.X < termEnd {
+		if m.startMenuOpen {
+			m.startMenuOpen = false
+		}
+		m.inner.AddWindow("")
+		m.inner.MarkAllDirty()
+		return true
+	}
+	// Click elsewhere on taskbar while menu open -> close menu
+	if m.startMenuOpen {
+		m.startMenuOpen = false
+		m.inner.MarkAllDirty()
+		return true
+	}
+	return false
 }
 
 func (m *appModel) handleRestoreClick(click tea.MouseClickMsg) bool {
@@ -257,8 +348,8 @@ func main() {
 	config := tuios.Config.DefaultConfig()
 	config.Appearance.BorderStyle = "none"
 	config.Appearance.WindowTitlePosition = "top"
-	config.Appearance.WindowTitleFgFocused = "#ffffff"    // active window title and controls
-	config.Appearance.WindowTitleFgUnfocused = "#000000"  // inactive windows
+	config.Appearance.WindowTitleFgFocused = "#ffffff"   // active window title and controls
+	config.Appearance.WindowTitleFgUnfocused = "#000000" // inactive windows
 	config.Appearance.HideClock = true
 	snapOnDragToEdge := false
 	config.Appearance.SnapOnDragToEdge = &snapOnDragToEdge
