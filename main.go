@@ -30,6 +30,12 @@ const (
 	color256TaskbarBlue  = "26"
 	color256Notification = "4" // ANSI blue - 110 renders clock text black on problem terminals
 )
+const (
+	terminalBtnGreenHex = "#22B14C"
+	terminalBtnBlackHex = "#000000"
+	terminalBtnGreen256 = "28"
+	terminalBtnBlack256 = "0"
+)
 
 // nearBlackPalette: dark tints for window backgrounds (RRGGBB hex).
 var nearBlackPalette = []string{
@@ -42,6 +48,8 @@ var nearBlackPalette = []string{
 type appModel struct {
 	inner        *tuios.Model
 	prevWinCount int
+	// lastTermBtnBounds: [xStart, xEnd) of terminal button on status bar, from last render
+	lastTermBtnBounds [2]int
 }
 
 func (m *appModel) Init() tea.Cmd {
@@ -55,8 +63,13 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		msg = tea.WindowSizeMsg{Width: sz.Width, Height: sz.Height - statusBarHeight}
 	}
 
-	if click, ok := msg.(tea.MouseClickMsg); ok && m.handleRestoreClick(click) {
-		return m, nil
+	if click, ok := msg.(tea.MouseClickMsg); ok {
+		if m.handleStatusBarClick(click) {
+			return m, nil
+		}
+		if m.handleRestoreClick(click) {
+			return m, nil
+		}
 	}
 
 	updated, cmd := m.inner.Update(msg)
@@ -86,7 +99,8 @@ func (m *appModel) View() tea.View {
 	canvas := m.inner.GetCanvas(true)
 
 	// Add our status bar as a canvas layer (same pipeline as tuios overlays) so it renders with correct colors
-	bar := renderStatusBar(m.inner.GetRenderWidth())
+	bar, termBtnStart, termBtnEnd := renderStatusBarWithBounds(m.inner.GetRenderWidth())
+	m.lastTermBtnBounds = [2]int{termBtnStart, termBtnEnd}
 	barLayer := lipgloss.NewLayer(bar).
 		X(0).
 		Y(m.inner.GetRenderHeight() - statusBarHeight).
@@ -116,7 +130,8 @@ func (m *appModel) View() tea.View {
 	return view
 }
 
-func renderStatusBar(width int) string {
+// renderStatusBarWithBounds returns the status bar string and terminal button X bounds [start, end).
+func renderStatusBarWithBounds(width int) (bar string, termBtnXStart, termBtnXEnd int) {
 	currentTime := time.Now().Format("15:04:05")
 	use256 := os.Getenv("TUITOP_USE_256_COLORS") == "1" || strings.EqualFold(os.Getenv("TUITOP_USE_256_COLORS"), "true")
 
@@ -140,6 +155,26 @@ func renderStatusBar(width int) string {
 		Background(lipgloss.Color(taskbarBg))
 	divider := divStyle.Render("\uE0BC")
 
+	var terminalBtnFg, terminalBtnBg string
+	if use256 {
+		terminalBtnFg, terminalBtnBg = terminalBtnGreen256, terminalBtnBlack256
+	} else {
+		terminalBtnFg, terminalBtnBg = terminalBtnGreenHex, terminalBtnBlackHex
+	}
+	// Blue bar spacer before terminal button (space to the left of button zone)
+	blueSpacer := lipgloss.NewStyle().
+		Background(lipgloss.Color(taskbarBg)).
+		Width(4).
+		Render(" ")
+	terminalBtnStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color(terminalBtnFg)).
+		Background(lipgloss.Color(terminalBtnBg)).
+		Padding(0, 1)
+	terminalBtn := terminalBtnStyle.Render(">_")
+
+	termBtnXStart = lipgloss.Width(startBtn) + lipgloss.Width(divider) + lipgloss.Width(blueSpacer)
+	termBtnXEnd = termBtnXStart + lipgloss.Width(terminalBtn)
+
 	clockStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("7")).
 		Bold(true).
@@ -155,10 +190,11 @@ func renderStatusBar(width int) string {
 	separator := separatorStyle.Render("\u258F")
 
 	leftSection := lipgloss.JoinHorizontal(lipgloss.Top, startBtn, divider)
-	leftWidth := lipgloss.Width(leftSection)
+	leftWithTermBtn := lipgloss.JoinHorizontal(lipgloss.Top, leftSection, blueSpacer, terminalBtn)
+	leftWithTermBtnWidth := lipgloss.Width(leftWithTermBtn)
 	clockWidth := lipgloss.Width(clockText)
 	separatorWidth := lipgloss.Width(separator)
-	middleWidth := width - leftWidth - separatorWidth - clockWidth
+	middleWidth := width - leftWithTermBtnWidth - separatorWidth - clockWidth
 	if middleWidth < 0 {
 		middleWidth = 0
 	}
@@ -166,7 +202,26 @@ func renderStatusBar(width int) string {
 		Background(lipgloss.Color(taskbarBg)).
 		Width(middleWidth).
 		Render(" ")
-	return lipgloss.JoinHorizontal(lipgloss.Top, leftSection, middle, separator, clockText)
+	bar = lipgloss.JoinHorizontal(lipgloss.Top, leftWithTermBtn, middle, separator, clockText)
+	return bar, termBtnXStart, termBtnXEnd
+}
+
+func (m *appModel) handleStatusBarClick(click tea.MouseClickMsg) bool {
+	if m.inner == nil || click.Button != tea.MouseLeft {
+		return false
+	}
+	// Bar is drawn at GetRenderHeight()-1 (last row of inner content)
+	statusBarY := m.inner.GetRenderHeight() - 1
+	if click.Y != statusBarY {
+		return false
+	}
+	termStart, termEnd := m.lastTermBtnBounds[0], m.lastTermBtnBounds[1]
+	if click.X < termStart || click.X >= termEnd {
+		return false
+	}
+	m.inner.AddWindow("")
+	m.inner.MarkAllDirty()
+	return true
 }
 
 func (m *appModel) handleRestoreClick(click tea.MouseClickMsg) bool {
@@ -216,7 +271,7 @@ func main() {
 	//   Red       → unfocused borders
 	//   BrightCyan → focused window-mode borders
 	//   BrightGreen → focused terminal-mode borders
-	model := tuios.New(tuios.WithUserConfig(config), tuios.WithBorderStyle("none"), tuios.WithTheme("WindowsXP"), tuios.WithDockbarPosition("hidden"))
+	model := tuios.New(tuios.WithUserConfig(config), tuios.WithBorderStyle("none"), tuios.WithTheme("WindowsXP"), tuios.WithDockbarPosition("hidden"), tuios.WithModeless(true))
 
 	winXPTheme := *tint.TintBuiltinDark
 	winXPTheme.ID = "WindowsXP"
