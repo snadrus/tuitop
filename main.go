@@ -200,7 +200,7 @@ func (m *appModel) handleRestoreClick(click tea.MouseClickMsg) bool {
 
 func main() {
 	config := tuios.Config.DefaultConfig()
-	config.Appearance.BorderStyle = "hidden"
+	config.Appearance.BorderStyle = "none"
 	config.Appearance.WindowTitlePosition = "top"
 	config.Appearance.WindowTitleFgFocused = "#ffffff"    // active window title and controls
 	config.Appearance.WindowTitleFgUnfocused = "#000000"  // inactive windows
@@ -216,7 +216,7 @@ func main() {
 	//   Red       → unfocused borders
 	//   BrightCyan → focused window-mode borders
 	//   BrightGreen → focused terminal-mode borders
-	model := tuios.New(tuios.WithUserConfig(config), tuios.WithBorderStyle("hidden"), tuios.WithTheme("WindowsXP"), tuios.WithDockbarPosition("hidden"))
+	model := tuios.New(tuios.WithUserConfig(config), tuios.WithBorderStyle("none"), tuios.WithTheme("WindowsXP"), tuios.WithDockbarPosition("hidden"))
 
 	winXPTheme := *tint.TintBuiltinDark
 	winXPTheme.ID = "WindowsXP"
