@@ -13,21 +13,62 @@ import (
 
 // StyleConfig holds colors and widths for the start menu (all passed from host).
 type StyleConfig struct {
-	MenuBg           string // background of menu (e.g. taskbar blue)
-	MenuFg           string // default text
-	UserFg           string // user section text
-	HighlightBg      string // hover/highlight (e.g. Windows blue)
-	HighlightFg      string // highlight text
-	AllProgramsFg    string // "All Programs" text
-	MenuWidth        int    // total menu width in cols
-	LeftColumnWidth  int    // left column width
-	RightColumnWidth int    // right column width
+	MenuBg           string
+	MenuFg           string
+	UserFg           string
+	HighlightBg      string
+	HighlightFg      string
+	AllProgramsFg    string
+	LeftColumnBg     string
+	LeftColumnFg     string
+	RightColumnBg    string
+	RightColumnFg    string
+	DividerFg        string
+	DividerBg        string
+	TopStripeUpperBg string
+	ExitBarBg        string
+	ExitBarFg        string
+	UserIcon         string
+	MenuWidth        int
+	LeftColumnWidth  int
+	RightColumnWidth int
 }
 
 // MenuItem is an icon + label for a menu entry (functionality comes later).
 type MenuItem struct {
 	Icon  string
 	Label string
+}
+
+// ClickIsExit reports whether a click at (localX, localY) hits the Exit label on the bottom bar (right-justified).
+func ClickIsExit(cfg StyleConfig, localX, localY int) bool {
+	if localX < 0 || localY < 0 {
+		return false
+	}
+	if cfg.MenuWidth <= 0 {
+		cfg.MenuWidth = 28
+	}
+	content, _, h := Render(cfg)
+	if localY >= h {
+		return false
+	}
+	lines := splitLines(content)
+	if localY >= len(lines) {
+		return false
+	}
+	items := RightItems()
+	exitItem := items[len(items)-1]
+	exitText := fixEmojiWidth(exitItem.Icon) + " " + exitItem.Label
+	if !strings.Contains(lines[localY], exitItem.Label) {
+		return false
+	}
+	// Exit row is full width; only the right-justified text cells count.
+	tw := lipgloss.Width(exitText)
+	if tw <= 0 {
+		return false
+	}
+	startX := cfg.MenuWidth - tw
+	return localX >= startX && localX < cfg.MenuWidth
 }
 
 // RightItems returns the right-column items: folders, Control Panel, Search, Help, Exit.
@@ -49,10 +90,35 @@ func Render(cfg StyleConfig) (content string, width, height int) {
 		cfg.MenuWidth = 28
 	}
 	if cfg.LeftColumnWidth <= 0 {
-		cfg.LeftColumnWidth = (cfg.MenuWidth - 1) / 2 // -1 for divider
+		cfg.LeftColumnWidth = (cfg.MenuWidth - 1) / 2
 	}
-	// Ensure left + divider + right = MenuWidth exactly (so body matches user line width)
 	cfg.RightColumnWidth = cfg.MenuWidth - cfg.LeftColumnWidth - 1
+
+	leftBg, leftFg := cfg.LeftColumnBg, cfg.LeftColumnFg
+	if leftBg == "" {
+		leftBg = cfg.MenuBg
+	}
+	if leftFg == "" {
+		leftFg = cfg.MenuFg
+	}
+	rightBg, rightFg := cfg.RightColumnBg, cfg.RightColumnFg
+	if rightBg == "" {
+		rightBg = cfg.MenuBg
+	}
+	if rightFg == "" {
+		rightFg = cfg.MenuFg
+	}
+	divFg, divBg := cfg.DividerFg, cfg.DividerBg
+	if divFg == "" {
+		divFg = leftFg
+	}
+	if divBg == "" {
+		divBg = leftBg
+	}
+	apFg := cfg.AllProgramsFg
+	if apFg == "" {
+		apFg = leftFg
+	}
 
 	baseStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(cfg.MenuFg)).
@@ -64,39 +130,57 @@ func Render(cfg StyleConfig) (content string, width, height int) {
 		Padding(0, 1)
 
 	allProgramsStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color(cfg.AllProgramsFg)).
-		Background(lipgloss.Color(cfg.MenuBg)).
+		Foreground(lipgloss.Color(apFg)).
+		Background(lipgloss.Color(leftBg)).
 		Padding(0, 1)
 
-	// User section: 👤 host\username
 	hostname, _ := os.Hostname()
 	username := "user"
 	if u, err := user.Current(); err == nil {
 		username = u.Username
 	}
-	userLine := userStyle.Width(cfg.MenuWidth).Render("👤 " + hostname + "\\" + username)
+	userIcon := cfg.UserIcon
+	if userIcon == "" {
+		userIcon = "👤 "
+	} else if !strings.HasSuffix(userIcon, " ") {
+		userIcon += " "
+	}
+	userLine := userStyle.Width(cfg.MenuWidth).Render(userIcon + hostname + "\\" + username)
 
+	topUpper := cfg.TopStripeUpperBg
+	if topUpper == "" {
+		topUpper = "#000000"
+	}
 	halfTop := baseStyle.Width(cfg.MenuWidth).Render(
-		lipgloss.NewStyle().Foreground(lipgloss.Color(cfg.MenuBg)).Background(lipgloss.Color("#000000")).Render(strings.Repeat("▄", cfg.MenuWidth)))
+		lipgloss.NewStyle().Foreground(lipgloss.Color(cfg.MenuBg)).Background(lipgloss.Color(topUpper)).Render(strings.Repeat("▄", cfg.MenuWidth)))
 
-	// Left column: Recent apps (blank), All Programs
-	leftCell := lipgloss.NewStyle().Width(cfg.LeftColumnWidth).Padding(0, 1).Background(lipgloss.Color(cfg.MenuBg)).Foreground(lipgloss.Color(cfg.MenuFg))
+	// --- layout restored from pre-refactor: two vertical stacks, pad heights, join per row ---
+	leftCell := lipgloss.NewStyle().
+		Width(cfg.LeftColumnWidth).
+		Padding(0, 1).
+		Background(lipgloss.Color(leftBg)).
+		Foreground(lipgloss.Color(leftFg))
 	leftLines := []string{
-		leftCell.Render(""), // Recent apps - blank
+		leftCell.Render(""),
 		leftCell.Render(""),
 		leftCell.Render(allProgramsStyle.Render("All Programs  ▶")),
 	}
 	leftCol := lipgloss.JoinVertical(lipgloss.Left, leftLines...)
 
-	// Right column: folders and items
-	rightCell := lipgloss.NewStyle().Width(cfg.RightColumnWidth).Padding(0, 1).Background(lipgloss.Color(cfg.MenuBg)).Foreground(lipgloss.Color(cfg.MenuFg))
-	rightLines := make([]string, 0, len(RightItems()))
-	for _, it := range RightItems() {
-		rightLines = append(rightLines, rightCell.Render(it.Icon+" "+it.Label))
+	rightCell := lipgloss.NewStyle().
+		Width(cfg.RightColumnWidth).
+		Padding(0, 1).
+		Background(lipgloss.Color(rightBg)).
+		Foreground(lipgloss.Color(rightFg))
+	rightItems := RightItems()
+	exitItem := rightItems[len(rightItems)-1]
+	rightColumnItems := rightItems[:len(rightItems)-1]
+	rightLines := make([]string, 0, len(rightColumnItems))
+	for _, it := range rightColumnItems {
+		rightLines = append(rightLines, rightCell.Render(fixEmojiWidth(it.Icon)+" "+it.Label))
 	}
 	rightCol := lipgloss.JoinVertical(lipgloss.Left, rightLines...)
 
-	// Pad column heights to match
 	for len(leftLines) < len(rightLines) {
 		leftLines = append(leftLines, leftCell.Render(""))
 	}
@@ -108,20 +192,19 @@ func Render(cfg StyleConfig) (content string, width, height int) {
 
 	leftPadded := lipgloss.NewStyle().
 		Width(cfg.LeftColumnWidth).
-		Background(lipgloss.Color(cfg.MenuBg)).
+		Background(lipgloss.Color(leftBg)).
 		Render(leftCol)
 	rightPadded := lipgloss.NewStyle().
 		Width(cfg.RightColumnWidth).
-		Background(lipgloss.Color(cfg.MenuBg)).
+		Background(lipgloss.Color(rightBg)).
 		Render(rightCol)
 
 	divider := lipgloss.NewStyle().
-		Foreground(lipgloss.Color(cfg.MenuFg)).
-		Background(lipgloss.Color(cfg.MenuBg)).
+		Foreground(lipgloss.Color(divFg)).
+		Background(lipgloss.Color(divBg)).
 		Width(1).
-		Render("\u2502") // box drawing light vertical
+		Render("\u2502")
 
-	// Build rows: each row is leftCol line + divider + rightCol line
 	leftSplit := splitLines(leftPadded)
 	rightSplit := splitLines(rightPadded)
 	maxRows := len(leftSplit)
@@ -135,30 +218,53 @@ func Render(cfg StyleConfig) (content string, width, height int) {
 		if i < len(leftSplit) {
 			leftPart = leftSplit[i]
 		} else {
-			leftPart = lipgloss.NewStyle().Width(cfg.LeftColumnWidth).Render("")
+			leftPart = lipgloss.NewStyle().Width(cfg.LeftColumnWidth).Background(lipgloss.Color(leftBg)).Render("")
 		}
 		if i < len(rightSplit) {
 			rightPart = rightSplit[i]
 		} else {
-			rightPart = lipgloss.NewStyle().Width(cfg.RightColumnWidth).Render("")
+			rightPart = lipgloss.NewStyle().Width(cfg.RightColumnWidth).Background(lipgloss.Color(rightBg)).Render("")
 		}
 		row := lipgloss.JoinHorizontal(lipgloss.Top, leftPart, divider, rightPart)
-		bodyRows = append(bodyRows, baseStyle.Width(cfg.MenuWidth).Render(row))
+		// Do not wrap body rows in baseStyle: it would repaint both panes with MenuBg and hide per-column colors.
+		bodyRows = append(bodyRows, row)
 	}
 	body := lipgloss.JoinVertical(lipgloss.Left, bodyRows...)
 
-	// Top: user line, then body
+	exitBarBg := cfg.ExitBarBg
+	if exitBarBg == "" {
+		exitBarBg = cfg.MenuBg
+	}
+	exitBarFg := cfg.ExitBarFg
+	if exitBarFg == "" {
+		exitBarFg = cfg.MenuFg
+	}
+	exitText := fixEmojiWidth(exitItem.Icon) + " " + exitItem.Label
+	exitBar := lipgloss.NewStyle().
+		Width(cfg.MenuWidth).
+		Align(lipgloss.Right).
+		Background(lipgloss.Color(exitBarBg)).
+		Foreground(lipgloss.Color(exitBarFg)).
+		Render(exitText)
+
 	full := lipgloss.JoinVertical(lipgloss.Left,
-		baseStyle.Width(cfg.MenuWidth).Render(halfTop),
+		halfTop,
 		baseStyle.Width(cfg.MenuWidth).Render(userLine),
 		body,
+		exitBar,
 	)
 
-	// Ensure consistent width
-	full = baseStyle.Width(cfg.MenuWidth).Render(full)
 	_, height = getDimensions(full)
 	width = cfg.MenuWidth
 	return full, width, height
+}
+
+// fixEmojiWidth replaces U+FE0F (emoji presentation selector) with a space.
+// Terminals often ignore FE0F for cursor advance, so the width library over-counts
+// by 1 for affected grapheme clusters. Swapping FE0F → space keeps the measured
+// width equal to the physical terminal width.
+func fixEmojiWidth(s string) string {
+	return strings.ReplaceAll(s, "\uFE0F", " ")
 }
 
 func splitLines(s string) []string {
