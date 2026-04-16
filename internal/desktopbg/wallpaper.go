@@ -52,15 +52,31 @@ func (w *Wallpaper) Bounds() image.Rectangle {
 	return image.Rect(0, 0, w.tw, w.th)
 }
 
+// Raster returns a snapshot of the current scaled pixel buffer and terminal
+// dimensions under a single lock acquisition. Use this to capture a consistent
+// (pix, tw, th) triple that won't be mutated by a concurrent SetTerminalSize.
+func (w *Wallpaper) Raster() (pix image.Image, tw, th int) {
+	if w == nil {
+		return nil, 0, 0
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.pix, w.tw, w.th
+}
+
 // Draw implements uv.Drawable (wallpaper cells only; use Frame to composite lipgloss on top).
 func (w *Wallpaper) Draw(scr uv.Screen, area image.Rectangle) {
 	if w == nil {
 		return
 	}
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	pix := w.pix
-	tw, th := w.tw, w.th
+	pix, tw, th := w.Raster()
+	DrawRasterCells(scr, pix, tw, th, area)
+}
+
+// DrawRasterCells renders half-block wallpaper cells from a pre-scaled raster.
+// pix must be tw × (2*th) pixels. This is the shared rendering core used by
+// both Wallpaper.Draw and Frame.Draw.
+func DrawRasterCells(scr uv.Screen, pix image.Image, tw, th int, area image.Rectangle) {
 	if pix == nil || tw <= 0 || th <= 0 {
 		return
 	}

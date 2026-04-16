@@ -27,33 +27,45 @@ func OverlayTopLines(overlay string, n int) string {
 	return out
 }
 
-// Frame draws a Wallpaper then overlays a lipgloss/ANSI string without clearing the wallpaper.
-// (uv.StyledString.Draw clears its bounds first, which erases a lower z-index layer in the same buffer.)
+// NewFrame snapshots the wallpaper raster and bundles it with the overlay string.
+// All state needed for rendering is captured here (on the main goroutine) so that
+// Draw—potentially called on a render goroutine—never races with SetTerminalSize.
+func NewFrame(wp *Wallpaper, overlay string) *Frame {
+	if wp == nil {
+		return &Frame{Overlay: overlay}
+	}
+	pix, tw, th := wp.Raster()
+	return &Frame{pix: pix, tw: tw, th: th, Overlay: overlay}
+}
+
+// Frame draws a pre-snapshotted wallpaper raster then overlays a lipgloss/ANSI
+// string without clearing the wallpaper.
 type Frame struct {
-	Bg      *Wallpaper
+	pix     image.Image
+	tw, th  int
 	Overlay string
 }
 
 // Bounds implements lipgloss layer sizing.
 func (f *Frame) Bounds() image.Rectangle {
-	if f == nil || f.Bg == nil {
+	if f == nil {
 		return image.Rectangle{}
 	}
-	return f.Bg.Bounds()
+	return image.Rect(0, 0, f.tw, f.th)
 }
 
 // Draw implements uv.Drawable.
 func (f *Frame) Draw(scr uv.Screen, area image.Rectangle) {
-	if f == nil || f.Bg == nil {
+	if f == nil {
 		return
 	}
-	b := f.Bg.Bounds()
-	if b.Empty() {
+	pix, tw, th := f.pix, f.tw, f.th
+	if pix == nil || tw <= 0 || th <= 0 {
 		return
 	}
-	f.Bg.Draw(scr, area.Intersect(b))
+	b := image.Rect(0, 0, tw, th)
+	DrawRasterCells(scr, pix, tw, th, area.Intersect(b))
 
-	tw, th := b.Dx(), b.Dy()
 	tmp := uv.NewScreenBuffer(tw, th)
 	tmp.Method = ansi.GraphemeWidth
 	uv.NewStyledString(f.Overlay).Draw(tmp, b)

@@ -198,14 +198,14 @@ func (m *appModel) View() tea.View {
 		m.lastMenuBounds = [4]int{0, 0, 0, 0}
 	}
 
-	var content any
+	var content string
 
 	if m.wallpaper != nil && tw > 0 && th > 1 {
 		// Wallpaper composites per-cell and misaligns wide glyphs on the same row as
 		// the clock. Keep the taskbar off the Frame: only rows [0, th-2] use wallpaper.
 		bodyCanvas := m.inner.GetCanvas(true)
 		if menuLayer != nil {
-			bodyCanvas.AddLayers(menuLayer)
+			bodyCanvas.Compose(lipgloss.NewCompositor(menuLayer))
 		}
 		bodyStr := lipgloss.Sprint(bodyCanvas.Render())
 		bodyStr = strings.ReplaceAll(bodyStr, "\r\n", "\n")
@@ -213,10 +213,12 @@ func (m *appModel) View() tea.View {
 		bodyStr = desktopbg.OverlayTopLines(bodyStr, needLines)
 
 		m.wallpaper.SetTerminalSize(tw, needLines)
-		frame := &desktopbg.Frame{Bg: m.wallpaper, Overlay: bodyStr}
-		top := lipgloss.NewLayer(frame).X(0).Y(0).Z(0).Width(tw).Height(needLines)
-		barL := lipgloss.NewLayer(bar).X(0).Y(th - statusBarHeight).Z(99999).Width(tw).Height(statusBarHeight).ID("tuitop-bar")
-		content = lipgloss.NewCanvas(top, barL)
+		frame := desktopbg.NewFrame(m.wallpaper, bodyStr)
+		barLayer := lipgloss.NewLayer(bar).X(0).Y(th - statusBarHeight).Z(99999).ID("tuitop-bar")
+		canvas := lipgloss.NewCanvas(tw, th)
+		canvas.Compose(frame)
+		canvas.Compose(lipgloss.NewCompositor(barLayer))
+		content = lipgloss.Sprint(canvas.Render())
 	} else {
 		canvas := m.inner.GetCanvas(true)
 		barLayer := lipgloss.NewLayer(bar).
@@ -224,26 +226,29 @@ func (m *appModel) View() tea.View {
 			Y(th - statusBarHeight).
 			Z(99999).
 			ID("tuitop-bar")
-		canvas.AddLayers(barLayer)
+		var extraLayers []*lipgloss.Layer
+		extraLayers = append(extraLayers, barLayer)
 		if menuLayer != nil {
-			canvas.AddLayers(menuLayer)
+			extraLayers = append(extraLayers, menuLayer)
 		}
-		innerContent := lipgloss.Sprint(canvas.Render())
+		canvas.Compose(lipgloss.NewCompositor(extraLayers...))
+		content = lipgloss.Sprint(canvas.Render())
 
 		terminalHeight := m.inner.Height + statusBarHeight
 		if terminalHeight > statusBarHeight {
-			innerLineCount := len(strings.Split(innerContent, "\n"))
+			innerLineCount := len(strings.Split(content, "\n"))
 			requiredInnerLines := terminalHeight - statusBarHeight
 			if innerLineCount < requiredInnerLines {
-				innerContent += strings.Repeat("\n", requiredInnerLines-innerLineCount)
+				content += strings.Repeat("\n", requiredInnerLines-innerLineCount)
 			}
 		}
 
-		content = innerContent
 		if m.wallpaper != nil && tw > 0 && th == 1 {
 			h := wallpaperRasterHeight(th)
 			m.wallpaper.SetTerminalSize(tw, h)
-			content = lipgloss.NewLayer(&desktopbg.Frame{Bg: m.wallpaper, Overlay: innerContent}).X(0).Y(0).Z(0).Width(tw).Height(h)
+			c := lipgloss.NewCanvas(tw, h)
+			c.Compose(desktopbg.NewFrame(m.wallpaper, content))
+			content = lipgloss.Sprint(c.Render())
 		}
 	}
 
