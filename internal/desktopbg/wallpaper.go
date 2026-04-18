@@ -5,18 +5,16 @@ import (
 	"image/color"
 	"sync"
 
-	"github.com/gdamore/tcell/v2"
 	uv "github.com/charmbracelet/ultraviolet"
 )
 
 // Lower half block (U+2584): upper cell area uses background color, lower uses foreground.
 const lowerHalfBlock = "▄"
 
-// Wallpaper draws a source image using tcellblit's raster sizing and tcell.FromImageColor
-// (same pairing as tcellblit.render).
+// Wallpaper scales the source image to a half-block raster (see HalfBlockRaster).
 type Wallpaper struct {
 	Src  image.Image
-	Fill bool // true = cover terminal (tcellblit fill mode), false = letterbox
+	Fill bool // true = cover terminal, false = letterbox
 
 	mu     sync.Mutex
 	tw, th int
@@ -64,15 +62,6 @@ func (w *Wallpaper) Raster() (pix image.Image, tw, th int) {
 	return w.pix, w.tw, w.th
 }
 
-// Draw implements uv.Drawable (wallpaper cells only; use Frame to composite lipgloss on top).
-func (w *Wallpaper) Draw(scr uv.Screen, area image.Rectangle) {
-	if w == nil {
-		return
-	}
-	pix, tw, th := w.Raster()
-	DrawRasterCells(scr, pix, tw, th, area)
-}
-
 // DrawRasterCells renders half-block wallpaper cells from a pre-scaled raster.
 // pix must be tw × (2*th) pixels. This is the shared rendering core used by
 // both Wallpaper.Draw and Frame.Draw.
@@ -93,14 +82,12 @@ func DrawRasterCells(scr uv.Screen, pix image.Image, tw, th int, area image.Rect
 			}
 			px := pb.Min.X + x
 			py := pb.Min.Y + y2
-			tcUp := tcell.FromImageColor(pix.At(px, py))
-			tcDown := tcell.FromImageColor(pix.At(px, py+1))
 			c := &uv.Cell{
 				Content: lowerHalfBlock,
 				Width:   1,
 				Style: uv.Style{
-					Fg: tcellToColor(tcDown),
-					Bg: tcellToColor(tcUp),
+					Fg: styleColorFromImage(pix.At(px, py+1)),
+					Bg: styleColorFromImage(pix.At(px, py)),
 				},
 			}
 			scr.SetCell(x, y, c)
@@ -108,18 +95,16 @@ func DrawRasterCells(scr uv.Screen, pix image.Image, tw, th int, area image.Rect
 	}
 }
 
-func tcellToColor(tc tcell.Color) color.Color {
-	if !tc.Valid() {
-		return color.NRGBA{A: 255}
-	}
-	h := tc.TrueColor().Hex()
-	if h < 0 {
+// styleColorFromImage maps an image color to an opaque sRGB value for uv.Style Fg/Bg.
+func styleColorFromImage(c color.Color) color.Color {
+	r, g, b, a := c.RGBA()
+	if a == 0 {
 		return color.NRGBA{A: 255}
 	}
 	return color.NRGBA{
-		R: uint8((h >> 16) & 0xff),
-		G: uint8((h >> 8) & 0xff),
-		B: uint8(h & 0xff),
-		A: 255,
+		R: uint8(r >> 8),
+		G: uint8(g >> 8),
+		B: uint8(b >> 8),
+		A: uint8(a >> 8),
 	}
 }

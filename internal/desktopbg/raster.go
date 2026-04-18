@@ -6,8 +6,6 @@ import (
 	"math"
 
 	xdraw "golang.org/x/image/draw"
-
-	_ "github.com/snadrus/tcellblit" // optional dep kept for tooling / version alignment
 )
 
 const (
