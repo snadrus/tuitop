@@ -322,22 +322,23 @@ func renderStatusBarWithBounds(width int, startMenuOpen bool, minimized []minimi
 		dividerFg = "#000000"
 	}
 
-	// When menu is open, show Start button as pressed (darker green; taskbar stays blue only on the bar)
+	// When menu is open, show Start button and its trailing curve as pressed (darker green; taskbar stays blue).
+	startAreaBg := startBg
+	if startMenuOpen {
+		if use256 {
+			startAreaBg = color256StartGreenPressed
+		} else {
+			startAreaBg = winXPStartGreenPressed
+		}
+	}
 	startBtnStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("7")).
-		Background(lipgloss.Color(startBg)).
+		Background(lipgloss.Color(startAreaBg)).
 		Padding(0, 1)
-	if startMenuOpen {
-		pressedBg := winXPStartGreenPressed
-		if use256 {
-			pressedBg = color256StartGreenPressed
-		}
-		startBtnStyle = startBtnStyle.Background(lipgloss.Color(pressedBg)).Foreground(lipgloss.Color("7"))
-	}
 	startBtn := startBtnStyle.Render(fixEmojiWidth(" ❄️  Start "))
 
 	divStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color(startBg)).
+		Foreground(lipgloss.Color(startAreaBg)).
 		Background(lipgloss.Color(taskbarBg))
 	divider := divStyle.Render("\uE0BC")
 
@@ -474,6 +475,8 @@ func startMenuStyleConfig() startmenu.StyleConfig {
 			LeftColumnFg:     color256StartMenuLeftFg,
 			RightColumnBg:    color256StartMenuRightBg,
 			RightColumnFg:    color256StartMenuRightFg,
+			DividerFg:        "0",
+			DividerBg:        color256StartMenuRightBg,
 			MenuWidth:        40,
 			LeftColumnWidth:  18,
 			RightColumnWidth: 21,
@@ -491,6 +494,8 @@ func startMenuStyleConfig() startmenu.StyleConfig {
 		LeftColumnFg:     winXPStartMenuLeftFg,
 		RightColumnBg:    winXPStartMenuRightBg,
 		RightColumnFg:    winXPStartMenuRightFg,
+		DividerFg:        "#000000",
+		DividerBg:        winXPStartMenuRightBg,
 		MenuWidth:        40,
 		LeftColumnWidth:  18,
 		RightColumnWidth: 21,

@@ -228,11 +228,13 @@ func Render(cfg StyleConfig) (content string, width, height int) {
 		Background(lipgloss.Color(rightBg)).
 		Render(rightCol)
 
+	// Same cell as taskbar clock separator (U+258F): thin vertical rule on notification-style bg when host sets DividerFg/DividerBg.
 	divider := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(divFg)).
 		Background(lipgloss.Color(divBg)).
 		Width(1).
-		Render("\u2502")
+		AlignHorizontal(lipgloss.Center).
+		Render("\u258F")
 
 	leftSplit := splitLines(leftPadded)
 	rightSplit := splitLines(rightPadded)
