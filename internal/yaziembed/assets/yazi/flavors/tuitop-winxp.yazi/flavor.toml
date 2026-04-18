@@ -1,0 +1,82 @@
+# Windows XP “Luna” explorer–inspired palette (host-owned asset; tweak in theme files only).
+"$schema" = "https://yazi-rs.github.io/schemas/theme.json"
+
+[app]
+overall = { bg = "#ffffff" }
+
+[mgr]
+cwd            = { fg = "#000000", bold = true }
+border_symbol  = "│"
+border_style   = { fg = "#333333" }
+marker_selected = { fg = "#ffffff", bg = "#316ac5" }
+marker_marked    = { fg = "#000000", bg = "#dadada" }
+count_selected   = { fg = "#ffffff", bg = "#316ac5" }
+
+# Yazi replaces (not merges) `rules` when a flavor sets `[filetype]` — include preset-like rules
+# plus a file catch-all so sources and manifests are near-black on the light pane.
+[filetype]
+rules = [
+	{ mime = "image/*", fg = "yellow" },
+	{ mime = "{audio,video}/*", fg = "magenta" },
+	{ mime = "application/{zip,rar,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", fg = "red" },
+	{ mime = "application/{pdf,doc,rtf}", fg = "cyan" },
+	{ mime = "vfs/{absent,stale}", fg = "darkgray" },
+	{ url = "*", is = "orphan", bg = "red" },
+	{ url = "*", is = "exec", fg = "green" },
+	{ url = "*", is = "dummy", bg = "red" },
+	{ url = "*/", is = "dummy", bg = "red" },
+	{ url = "*/", fg = "blue" },
+	{ url = "*", fg = "#000000" },
+]
+
+[status]
+overall    = { fg = "#000000", bg = "#ffffff" }
+sep_left   = { open = " ", close = " ", fg = "#333333" }
+sep_right  = { open = " ", close = " ", fg = "#333333" }
+perm_type  = { fg = "#000080" }
+perm_read  = { fg = "#008000" }
+perm_write = { fg = "#ff8000" }
+perm_exec  = { fg = "#800000" }
+perm_sep   = { fg = "#333333" }
+
+[tabs]
+active   = { fg = "#ffffff", bg = "#0054e3", bold = true }
+inactive = { fg = "#000000", bg = "#ffffff" }
+sep_inner  = { open = " ", close = " " }
+sep_outer  = { open = " ", close = " " }
+
+[mode]
+normal_main  = { fg = "#ffffff", bg = "#0054e3", bold = true }
+normal_alt   = { fg = "#0054e3", bg = "#ffffff" }
+select_main  = { fg = "#ffffff", bg = "#333333", bold = true }
+select_alt   = { fg = "#000000", bg = "#ffffff" }
+
+[which]
+cols            = 2
+mask            = { bg = "#0054e3" }
+cand            = { fg = "#ffffff", bg = "#0054e3" }
+rest            = { fg = "#d4e4fc", bg = "#0054e3" }
+desc            = { fg = "#ffffff", bg = "#316ac5" }
+separator       = "  "
+separator_style = { fg = "#ffffff" }
+
+[confirm]
+title   = { fg = "#000000", bg = "#ffffff", bold = true }
+content = { fg = "#000000", bg = "#ffffff" }
+btn_yes = { fg = "#ffffff", bg = "#0054e3" }
+btn_no  = { fg = "#000000", bg = "#dadada" }
+
+[notify]
+title  = { fg = "#000000", bg = "#ffffff", bold = true }
+content = { fg = "#000000", bg = "#ffffff" }
+
+[help]
+on      = { fg = "#ffffff", bg = "#0054e3" }
+run     = { fg = "#000000", bg = "#ffffff" }
+footer  = { fg = "#000000", bg = "#dadada" }
+desc    = { fg = "#000000", bg = "#ffffff" }
+hovered = { fg = "#ffffff", bg = "#316ac5" }
+
+[tasks]
+title   = { fg = "#000000", bg = "#ffffff", bold = true }
+hovered = { fg = "#ffffff", bg = "#316ac5" }

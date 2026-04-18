@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -19,6 +20,8 @@ import (
 	tint "github.com/lrstanley/bubbletint/v2"
 	"github.com/snadrus/tuitop/internal/desktopbg"
 	"github.com/snadrus/tuitop/internal/startmenu"
+	"github.com/snadrus/tuitop/internal/startscript"
+	"github.com/snadrus/tuitop/internal/yaziembed"
 )
 
 //go:embed images/fake-winxp-bkgd.png
@@ -494,6 +497,23 @@ func startMenuStyleConfig() startmenu.StyleConfig {
 	}
 }
 
+// openStartMenuYazi opens yazi in a new window (embedded config); openDir is optional (empty = default start).
+func (m *appModel) openStartMenuYazi(windowTitle, openDir string) {
+	configHome, err := yaziembed.ConfigDir()
+	if err != nil {
+		m.inner.ShowNotification("File manager: "+err.Error(), "error", 5*time.Second)
+		return
+	}
+	sc, err := startscript.YaziFileManagerAt(configHome, windowTitle, openDir)
+	if err != nil {
+		m.inner.ShowNotification(err.Error(), "error", 6*time.Second)
+		return
+	}
+	m.inner.AddWindowWithSpawn(sc.WindowTitle, sc.Spawn)
+	m.startMenuOpen = false
+	m.inner.MarkAllDirty()
+}
+
 // handleStartMenuClick handles start menu clicks: Exit quits; inside-menu clicks are consumed; outside closes menu.
 // Must run before handleStatusBarClick.
 func (m *appModel) handleStartMenuClick(click tea.MouseClickMsg) (handled bool, cmd tea.Cmd) {
@@ -507,6 +527,29 @@ func (m *appModel) handleStartMenuClick(click tea.MouseClickMsg) (handled bool, 
 		localY := click.Y - mb[1]
 		if startmenu.ClickIsExit(startMenuStyleConfig(), localX, localY) {
 			return true, tea.Quit
+		}
+		cfg := startMenuStyleConfig()
+		if startmenu.ClickHitRightColumnLabel(cfg, localX, localY, "Home Folder") {
+			home := os.Getenv("HOME")
+			if home == "" {
+				m.inner.ShowNotification("HOME is not set", "error", 5*time.Second)
+				return true, nil
+			}
+			m.openStartMenuYazi("Home Folder", home)
+			return true, nil
+		}
+		if startmenu.ClickHitRightColumnLabel(cfg, localX, localY, "Desktop") {
+			home := os.Getenv("HOME")
+			if home == "" {
+				m.inner.ShowNotification("HOME is not set", "error", 5*time.Second)
+				return true, nil
+			}
+			m.openStartMenuYazi("Desktop", filepath.Join(home, "Desktop"))
+			return true, nil
+		}
+		if startmenu.ClickHitRightColumnLabel(cfg, localX, localY, "My Computer") {
+			m.openStartMenuYazi("My Computer", "")
+			return true, nil
 		}
 		return true, nil
 	}

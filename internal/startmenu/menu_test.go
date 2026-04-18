@@ -80,3 +80,35 @@ func TestRenderExitLineIndex(t *testing.T) {
 		t.Error("click left of exit label should not be Exit")
 	}
 }
+
+func TestClickHitRightColumnLabelMyComputer(t *testing.T) {
+	cfg := StyleConfig{
+		MenuBg:           "#0054E3",
+		MenuFg:           "#ffffff",
+		UserFg:           "#ffffff",
+		HighlightBg:      "#1996E9",
+		HighlightFg:      "#ffffff",
+		AllProgramsFg:    "#ffffff",
+		MenuWidth:        40,
+		LeftColumnWidth:  18,
+		RightColumnWidth: 21,
+	}
+	content, _, _ := Render(cfg)
+	var rowMyComputer int = -1
+	for i, line := range splitLines(content) {
+		if strings.Contains(line, "My Computer") {
+			rowMyComputer = i
+			break
+		}
+	}
+	if rowMyComputer < 0 {
+		t.Fatal("rendered menu missing My Computer row")
+	}
+	rightX := cfg.LeftColumnWidth + 3
+	if !ClickHitRightColumnLabel(cfg, rightX, rowMyComputer, "My Computer") {
+		t.Fatalf("expected hit at (%d,%d)", rightX, rowMyComputer)
+	}
+	if ClickHitRightColumnLabel(cfg, 2, rowMyComputer, "My Computer") {
+		t.Fatal("left column click should not count as right-column label hit")
+	}
+}

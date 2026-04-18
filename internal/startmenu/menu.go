@@ -40,6 +40,35 @@ type MenuItem struct {
 	Label string
 }
 
+// ClickHitRightColumnLabel reports whether (localX, localY) hits a row in the right column
+// that contains the given label text (e.g. "My Computer"). Coordinates are menu-local.
+func ClickHitRightColumnLabel(cfg StyleConfig, localX, localY int, label string) bool {
+	if localX < 0 || localY < 0 {
+		return false
+	}
+	if cfg.MenuWidth <= 0 {
+		cfg.MenuWidth = 28
+	}
+	if cfg.LeftColumnWidth <= 0 {
+		cfg.LeftColumnWidth = (cfg.MenuWidth - 1) / 2
+	}
+	content, _, h := Render(cfg)
+	if localY >= h {
+		return false
+	}
+	lines := splitLines(content)
+	if localY >= len(lines) {
+		return false
+	}
+	line := lines[localY]
+	if !strings.Contains(line, label) {
+		return false
+	}
+	// Right column starts after left pane + vertical divider (see Render).
+	minX := cfg.LeftColumnWidth + 1
+	return localX >= minX
+}
+
 // ClickIsExit reports whether a click at (localX, localY) hits the Exit label on the bottom bar (right-justified).
 func ClickIsExit(cfg StyleConfig, localX, localY int) bool {
 	if localX < 0 || localY < 0 {
@@ -74,7 +103,7 @@ func ClickIsExit(cfg StyleConfig, localX, localY int) bool {
 // RightItems returns the right-column items: folders, Control Panel, Search, Help, Exit.
 func RightItems() []MenuItem {
 	return []MenuItem{
-		{Icon: "📁", Label: "~"},
+		{Icon: "📁", Label: "Home Folder"},
 		{Icon: "🖥️", Label: "Desktop"},
 		{Icon: "💻", Label: "My Computer"},
 		{Icon: "⚙️", Label: "Control Panel"},

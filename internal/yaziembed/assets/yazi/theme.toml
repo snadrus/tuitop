@@ -1,0 +1,6 @@
+# Bundled with tuitop — points at the Windows-XP–inspired flavor.
+"$schema" = "https://yazi-rs.github.io/schemas/theme.json"
+
+[flavor]
+dark  = "tuitop-winxp"
+light = "tuitop-winxp"
