@@ -7,7 +7,7 @@ A full-screen terminal experience that feels less like a multiplexer and more li
 ## Highlights
 
 - **True-color desktop wallpaper** —  Images scale to cover the viewport for a smooth, “luxury” backdrop behind your windows.
-- **Windows XP–inspired chrome** — Classic blues and silvers to aligne with your favorite blocky UI.
+- **Windows XP–inspired chrome** — Classic blues and silvers to align with your favorite blocky UI.
 - **Dedicated taskbar** — With a Start affordance, a one-click terminal launcher, buttons for minimized windows, and a live clock in the notification style. Mouse-driven: open the menu, spawn terminals, restore minimized panes.
 - **Start menu** — Two-column layout with pinned shortcuts. **Home Folder**, **Desktop**, and **My Computer** open the [Yazi](https://github.com/sxyazi/yazi) file manager that matches the fantasy OS. **Exit** quits the app.
 - **TUIOS underneath** — A forked [TUIOS](https://github.com/Gaurav-Gosain/tuios) provides PTY-backed windows and the usual window controls and a desktop flow with a text copy mode & mouse-wheel scrollback. 
