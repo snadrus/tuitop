@@ -34,3 +34,10 @@ Use a modern terminal with **true color** and **mouse reporting** for the intend
 
 Tuitop is MIT licensed. Its major dependencies are too. Underlying Go libraries are public domain.
 
+## Upcoming
+
+- Text editor respected by Yazi: Micro?
+- Unified copy-paste behavior
+- App links: Name, icon, pref window size, how-to-download(?), copy-mode(?)
+- Search, Help, AI-Chat
+- Ecosystem of programs
