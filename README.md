@@ -16,7 +16,24 @@ A full-screen terminal experience that feels less like a multiplexer and more li
 
 ## Try it
 
-Requires **Go 1.26+** (see `go.mod`) & Yazi. 
+Requires **Go 1.26+** (see `go.mod`), [Yazi](https://github.com/sxyazi/yazi), and a **Nerd Font**. Yazi’s file icons are Nerd Font glyphs; without one they render as empty boxes. The chrome also uses Unicode block elements (`▄`, `▏`). Start-menu emoji (`📁`, `🖥️`, …) come from the system emoji font.
+
+**macOS Terminal.app** — install a font, then set this profile:
+
+```bash
+brew install --cask font-jetbrains-mono-nerd-font
+```
+
+| Setting | Value |
+| --- | --- |
+| Font | **JetBrainsMono Nerd Font** (or **JetBrainsMono Nerd Font Mono**) |
+| Size | 13 |
+| Font smoothing | Automatic |
+| Character spacing | 1.0 |
+| True color / 24-bit | on (recent macOS) |
+| Mouse reporting | on (default) |
+
+Terminal → Settings → Profiles → Text → Font. Emoji fallback to Apple Color Emoji is on by default. Any other complete Nerd Font (MesloLGS NF, Hack, FiraCode, CaskaydiaCove) is fine if you already have one.
 
 ```bash
 git clone https://github.com/snadrus/tuitop.git
@@ -41,3 +58,4 @@ Tuitop is MIT licensed. Its major dependencies are too. Underlying Go libraries 
 - App links: Name, icon, pref window size, how-to-download(?), copy-mode(?)
 - Search, Help, AI-Chat
 - Ecosystem of programs
+- Settings & Control panel

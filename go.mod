@@ -6,6 +6,7 @@ require (
 	charm.land/bubbletea/v2 v2.0.2
 	charm.land/lipgloss/v2 v2.0.2
 	github.com/Gaurav-Gosain/tuios v0.6.0
+	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/charmbracelet/ultraviolet v0.0.0-20260316091819-b93f6a3b8502
 	github.com/lrstanley/bubbletint/v2 v2.0.0-alpha.9
 	golang.org/x/image v0.33.0
@@ -17,7 +18,6 @@ require (
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/bits-and-blooms/bitset v1.24.4 // indirect
-	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/ssh v0.0.0-20250826160808-ebfa259c7309 // indirect
 	github.com/charmbracelet/x/ansi v0.11.6 // indirect
 	github.com/charmbracelet/x/conpty v0.1.1 // indirect

@@ -17,6 +17,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/Gaurav-Gosain/tuios/pkg/tuios"
+	"github.com/charmbracelet/colorprofile"
 	tint "github.com/lrstanley/bubbletint/v2"
 	"github.com/snadrus/tuitop/internal/desktopbg"
 	"github.com/snadrus/tuitop/internal/startmenu"
@@ -311,7 +312,7 @@ func (m *appModel) getMinimizedWindows() []minimizedInfo {
 func renderStatusBarWithBounds(width int, startMenuOpen bool, minimized []minimizedInfo) (bar string, termBtnXStart, termBtnXEnd, startBtnXStart, startBtnXEnd int, items []taskbarItem) {
 	t := time.Now()
 	currentTime := fmt.Sprintf("%02d:%02d:%02d", t.Hour(), t.Minute(), t.Second())
-	use256 := os.Getenv("TUITOP_USE_256_COLORS") == "1" || strings.EqualFold(os.Getenv("TUITOP_USE_256_COLORS"), "true")
+	use256 := use256Colors()
 
 	var startBg, taskbarBg, notifBg, dividerFg string
 	if use256 {
@@ -461,7 +462,7 @@ func renderStatusBarWithBounds(width int, startMenuOpen bool, minimized []minimi
 
 // startMenuStyleConfig matches the StyleConfig used when drawing the open start menu.
 func startMenuStyleConfig() startmenu.StyleConfig {
-	use256 := os.Getenv("TUITOP_USE_256_COLORS") == "1" || strings.EqualFold(os.Getenv("TUITOP_USE_256_COLORS"), "true")
+	use256 := use256Colors()
 	if use256 {
 		return startmenu.StyleConfig{
 			MenuBg:           color256TaskbarBlue,
@@ -640,7 +641,20 @@ func (m *appModel) handleRestoreClick(click tea.MouseClickMsg) bool {
 	return true
 }
 
+func use256Colors() bool {
+	v := os.Getenv("TUITOP_USE_256_COLORS")
+	return v == "1" || strings.EqualFold(v, "true")
+}
+
 func main() {
+	// Charm detects TERM=xterm-256color (Apple Terminal, Cursor) as ANSI256.
+	// COLORTERM does not stop lipgloss.Sprint from downsampling View() output.
+	profile := colorprofile.TrueColor
+	if use256Colors() {
+		profile = colorprofile.ANSI256
+	}
+	lipgloss.Writer.Profile = profile
+
 	config := tuios.Config.DefaultConfig()
 	config.Appearance.SuppressEmptyDesktopWelcome = true
 	config.Appearance.BorderStyle = "none"
@@ -669,10 +683,11 @@ func main() {
 	winXPTheme.BrightGreen = &tint.Color{R: 0, G: 84, B: 227, A: 255} // #0054E3 Windows blue → focused terminal borders
 	tint.Register(&winXPTheme)
 	tint.SetTintID("WindowsXP")
+	opts := append(tuios.ProgramOptions(), tea.WithColorProfile(profile))
 	program := tea.NewProgram(&appModel{
 		inner:     model,
 		wallpaper: &desktopbg.Wallpaper{Src: fakeWinXPBackground, Fill: true},
-	}, tuios.ProgramOptions()...)
+	}, opts...)
 	if _, err := program.Run(); err != nil {
 		log.Fatal(err)
 	}
